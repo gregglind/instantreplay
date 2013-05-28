@@ -13,6 +13,7 @@
 
 <svg id="viz"></svg>
 
+<p id="message"></p>
 <p>
 <button id="pause">pause</button>
 <button id="reset">reset</button>
@@ -59,14 +60,14 @@ var randint = function(l,r){
   return (r - l) * Math.random() + l
 }
 
-var svgh = 500;
-var svgw = 300;
+var svgh = 600;
+var svgw = 800;
 
 var maxx, maxy, tick, r, opacity;
-maxx = 900;
-maxy = 750;
+maxx = 1500;
+maxy = 1200;
 clock = 100;
-r=10;
+r=5;
 opacity=.1
 
 var xscale, yscale;
@@ -81,14 +82,25 @@ yscale = d3.scale.linear()
 
 $(function(){
 /*******/
-var data = [];
+
+var alldata;
+$.getJSON("sample.json",function(data){alldata = data}).done(
+  function(){
+    alldata = _.chain(alldata).pluck("data").filter(function(x){return x.screenX !== undefined && x.screenY !== undefined}).value();
+
+  }
+)
+
+var data = []
+
 
 var svg = d3.select('#viz').
   attr("width",svgw).
   attr("height",svgh)
 
 var update = function(){
- svg.
+  if (data === undefined) return
+  svg.
     selectAll("circle").
     data(data).
     enter().
@@ -96,7 +108,18 @@ var update = function(){
     attr('r',r).
     attr('cx',function(d, i) { return xscale(d.x) }).
     attr('cy',function(d, i) { return yscale(d.y) }).
-    attr('fill','rgba(256,0,0,'+opacity+')')
+    attr('fill',function(d,i){
+      switch (d.group){
+        case "wheel":
+          return 'rgba(0,0,256,'+opacity+')'
+        case "in-content":
+          return 'rgba(256,0,0,'+opacity+')'
+        default:
+          return 'rgba(0,256,0,'+opacity+')'
+      }
+    }).
+    append("svg:title").
+    text(function(d) { return JSON.stringify(d,null,2)});
 
  svg.
     selectAll("circle").
@@ -110,10 +133,32 @@ update();
 var going = true;
 
 var ticktock = function(){
+  if (alldata === undefined) return;
+
+  if (data.length > 40) {
+
+    data = _.map(alldata,function(d){
+      d.x = d.screenX;
+      d.y = d.screenY;
+      return d
+    })
+  } else {
+    var d = alldata[data.length];
+    d.x = d.screenX;
+    d.y = d.screenY;
+    data.push(d)
+    console.log("data:", data.length, JSON.stringify(data[data.length-1]))
+  }
+  update();
+};
+
+
+/*
+var ticktock = function(){
   data.push({x: maxx*Math.random(), y: maxy*Math.random()})
   console.log("data:", data.length, JSON.stringify(data[data.length-1]))
   update();
-};
+};*/
 
 var timer = window.setInterval(ticktock,clock)
 
@@ -136,6 +181,9 @@ $("#reset").on("click",function(e){
   going = true;
   $("#pause").text("pause")
 })
+
+
+
 
 /*******/
 })  // jq
