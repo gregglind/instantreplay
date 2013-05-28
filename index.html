@@ -13,8 +13,10 @@
 
 <svg id="viz"></svg>
 
-
-<button id="stop">stop</button>
+<p>
+<button id="pause">pause</button>
+<button id="reset">reset</button>
+</p>
 </body>
 
 
@@ -95,20 +97,44 @@ var update = function(){
     attr('cx',function(d, i) { return xscale(d.x) }).
     attr('cy',function(d, i) { return yscale(d.y) }).
     attr('fill','rgba(256,0,0,'+opacity+')')
+
+ svg.
+    selectAll("circle").
+    data(data).
+    exit().remove()
+
 }
 
 update();
 
-var timer = window.setInterval(function(){
+var going = true;
+
+var ticktock = function(){
   data.push({x: maxx*Math.random(), y: maxy*Math.random()})
   console.log("data:", data.length, JSON.stringify(data[data.length-1]))
   update();
-  },
-  clock
-)
+};
 
-$("#stop").on("click",function(e){
-  window.clearInterval(timer)
+var timer = window.setInterval(ticktock,clock)
+
+$("#pause").on("click",function(e){
+  if (going){
+    window.clearInterval(timer);
+    going = false;
+    $(this).text(' go ')
+  } else {
+    timer = window.setInterval(ticktock,clock);
+    going = true;
+    $(this).text('pause')
+  }
+})
+
+$("#reset").on("click",function(e){
+  window.clearInterval(timer);
+  data = [];
+  timer = window.setInterval(ticktock,clock);
+  going = true;
+  $("#pause").text("pause")
 })
 
 /*******/
